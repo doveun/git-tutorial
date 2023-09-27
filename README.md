@@ -1,1 +1,85 @@
 # git-tutorial
+psh= ParamToggle("Pivot Shapes","Off|On",1);
+   plb= ParamToggle("Pivot Labels","Off|On",1);
+   snd= ParamToggle("Sound Alerts","Off|On",1);
+   lbk= Param("Hi Lo Lookback",350,50,5000,10);
+   nbz= Param("Swing Bars",20,5,150,1);
+   tht= Param("Hi Label Adjust",0.65,0.10,5,0.05)*ATR(5);
+   lbk= Min(BarCount-1,Lbk);
+   bc=BarCount-1;
+//================
+   xH=H-H;   xL=L-L;   yH=H-H;   yL=L-L;   xR=H-H;   xS=L-L;
+   xrb=0;    xSb=0;    yR0=0;    yS0=0;    xR0=0;    xS0=0;   xx=0;
+   xHH= HHVBars(H,nbz);  xLL= LLVBars(L,nbz);
+   yHH= HHV(H,nbz);      yLL= LLV(L,nbz);
+   viz= Status("BarVisible");
+   vbz= LastValue(Highest(IIf(viz,BarIndex(),0)));
+   _TRACE("Last visible bar: "+ vbz);
+   bct= (BarCount-1);  dir = "";
+   if(xLL[bc]<xHH[bc])
+	{ 
+		dir="D"; 
+	} else
+	{
+		dir="U"; 
+	}
+    for(i=0; i<lbk; i++)  
+    {
+		bc=bct-i;
+		if(xLL[bc]<xHH[bc])  
+		{ 
+			if(dir=="U")
+			{
+				dir="D";
+				xx=bc-xLL[bc];
+				xL[xx]=1;  
+				yL[xSb]=L[xx];
+				xS[xSb]=xx; xSb++; 
+			}
+		} else 
+		{
+			if(dir=="D")
+			{
+				dir = "U";
+				xx=bc-xHH[bc];
+				xH[xx]=1;  
+				yH[xrb]=H[xx];  
+				xR[xrb]=xx;xrb++; 
+			}
+		}
+    }
+    xP= 0;  yP= 0;  xS0= xS[0];  yS0=yL[0];  xR0= xR[0];  yR0= yH[0];
+    if(xS0>xR0) 
+    { 
+		xP=bc-xHH[bc];  yP= yHH[bc];
+		if(yR0<yP AND xP>xS0 AND xP<bc) 
+		{
+			xH[xP]=1;
+			for(j=0; j<xrb; j++) 
+			{ 
+				yH[xrb-j]= yH[xrb-(j+1)];
+				xR[xrb-j]= xR[xrb-(j+1)];
+			}
+			yH[0]= yP;  xR[0]= xP;  xrb++;  }
+        } else 
+        { 
+			xP= bc-xLL[bc]; yP= yLL[bc];
+			if(yS0>yP AND xP>xR0 AND xP<bc) 
+			{
+				xL[xP]=1;
+				for(j=0; j<xSb; j++) 
+				{
+					yL[xSb-j]= yL[xSb-(j+1)];  xS[xSb-j]= xS[xSb-(j+1)];  
+				}
+				yL[0]=yP;  xS[0]=xP;  xSb++;  
+			}
+		}
+		ushp=shapeHollowUpArrow;   dshp=shapeHollowDownArrow;
+		if(psh) 
+		{
+			PlotShapes(xH*dshp,42,0,H,-10);  
+			PlotShapes(xL*ushp,43,0,L,-10); 
+		}
+
+	Buy=(xL);  Sell=(xH); Long=Flip(Buy,Sell);  Shrt=Flip(Sell,Buy);
+	SellPrice=ValueWhen(Sell,H,1);  BuyPrice= ValueWhen(Buy,L,1);
